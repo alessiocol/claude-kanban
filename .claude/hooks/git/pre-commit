@@ -1,0 +1,126 @@
+#!/bin/bash
+# Pre-commit hook - Validates code quality before allowing commit
+# This file is stored in .claude/hooks/git/ and symlinked to .git/hooks/pre-commit
+
+set -e
+
+echo "🔍 Pre-commit validation..."
+
+# 1. Check commit message format (read from the commit message file if it exists)
+# Note: The commit message is passed as argument to commit-msg hook, not pre-commit
+# We'll validate format in commit-msg hook instead
+
+# 2. Check if modifying code without tests
+CHANGED_FILES=$(git diff --cached --name-only)
+
+if echo "$CHANGED_FILES" | grep -q "^src/"; then
+  if ! echo "$CHANGED_FILES" | grep -q "^tests/"; then
+    echo ""
+    echo "⚠️  WARNING: Modifying src/ without updating tests"
+    echo ""
+    echo "Changed files:"
+    echo "$CHANGED_FILES" | grep "^src/" | sed 's/^/  - /'
+    echo ""
+    echo "Consider adding/updating tests in tests/"
+    echo ""
+
+    # Make it non-blocking for now (just warning)
+    # Can make strict later: read -p "Continue anyway? (y/N) " ...
+  fi
+fi
+
+# 3. Run tests if they exist (and pytest is available)
+if [ -d "tests" ] && command -v pytest &> /dev/null; then
+  echo "Running tests..."
+
+  # Run tests quietly, fail fast on first error
+  if pytest --quiet -x 2>&1 | grep -E "(FAILED|ERROR)"; then
+    echo ""
+    echo "❌ BLOCKED: Tests failed"
+    echo ""
+    echo "Fix failing tests before committing:"
+    echo "  pytest -v  # See detailed output"
+    echo ""
+    exit 1
+  else
+    echo "✅ Tests passed"
+  fi
+elif [ -d "tests" ]; then
+  echo "⚠️  pytest not found - skipping test run"
+  echo "   Install: poetry add --group dev pytest"
+fi
+
+# 4. Validate state transitions in ACTIVE.md (if being modified)
+if echo "$CHANGED_FILES" | grep -q "^\.claude/state/ACTIVE\.md$"; then
+  echo "Validating state transitions in ACTIVE.md..."
+
+  # Get the old version (current HEAD)
+  OLD_ACTIVE=$(git show HEAD:.claude/state/ACTIVE.md 2>/dev/null || echo "")
+  # Get the new version (staged)
+  NEW_ACTIVE=$(git show :.claude/state/ACTIVE.md 2>/dev/null || cat .claude/state/ACTIVE.md)
+
+  # Extract task states from both versions
+  # Format: [TASK-ID] ... State: STATE_NAME
+  extract_states() {
+    local content="$1"
+    echo "$content" | grep -oP '\[TASK-\d+\].*?State: \K\w+' || true
+  }
+
+  # Simple validation: check if any tasks have invalid state transitions
+  # This is a basic implementation - just validates that states changed are legal
+
+  # For now, we'll do a simple check: if ACTIVE.md has "State:" lines, warn about manual edits
+  if echo "$NEW_ACTIVE" | grep -q "State:"; then
+    # Check if this looks like a manual edit vs. transition script
+    # The transition script should have a commit message like "[workflow] TASK-XXX: STATE → STATE"
+    # We can't check that here (commit message not available in pre-commit)
+    # So we'll just validate the states exist and are legal
+
+    STATES=$(echo "$NEW_ACTIVE" | grep -oP 'State: \K\w+' || true)
+    INVALID_STATE=0
+
+    while IFS= read -r state; do
+      if [ -n "$state" ]; then
+        case "$state" in
+          UNCLAIMED|IN_PROGRESS|IN_REVIEW|ADDRESSING_FEEDBACK|COMPLETED)
+            # Valid state
+            ;;
+          *)
+            echo ""
+            echo "❌ BLOCKED: Invalid state found: $state"
+            echo ""
+            echo "Valid states: UNCLAIMED, IN_PROGRESS, IN_REVIEW, ADDRESSING_FEEDBACK, COMPLETED"
+            echo ""
+            INVALID_STATE=1
+            ;;
+        esac
+      fi
+    done <<< "$STATES"
+
+    if [ $INVALID_STATE -eq 1 ]; then
+      exit 1
+    fi
+  fi
+
+  echo "✅ State transitions valid"
+fi
+
+# 5. Check if PROJECT_STATE.md is getting stale (informational only)
+if echo "$CHANGED_FILES" | grep -q "^src/"; then
+  # Only check if PROJECT_STATE.md exists
+  if [ -f "PROJECT_STATE.md" ]; then
+    STATE_MODIFIED=$(git log -1 --format=%ct PROJECT_STATE.md 2>/dev/null || echo 0)
+    NOW=$(date +%s)
+    HOURS_SINCE=$((($NOW - $STATE_MODIFIED) / 3600))
+
+    if [ $HOURS_SINCE -gt 4 ]; then
+      echo ""
+      echo "💡 TIP: PROJECT_STATE.md hasn't been updated in $HOURS_SINCE hours"
+      echo "   Consider updating it with your progress periodically"
+      echo ""
+    fi
+  fi
+fi
+
+echo "✅ Pre-commit checks passed"
+echo ""

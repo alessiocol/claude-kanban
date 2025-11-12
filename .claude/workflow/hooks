@@ -1,0 +1,94 @@
+#!/bin/bash
+# Hook Management Script
+# Manages git hooks via pre-commit framework
+
+set -e
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+show_usage() {
+    echo "Usage: $0 [--install | --uninstall]"
+    echo ""
+    echo "Manages git hooks via pre-commit framework."
+    echo ""
+    echo "Options:"
+    echo "  --install     Install hooks using pre-commit"
+    echo "  --uninstall   Uninstall hooks"
+    echo ""
+    echo "Requirements:"
+    echo "  pip install pre-commit"
+    exit 1
+}
+
+# Parse arguments
+ACTION=""
+if [ $# -eq 0 ]; then
+    show_usage
+fi
+
+case "$1" in
+    --install)
+        ACTION="install"
+        ;;
+    --uninstall)
+        ACTION="uninstall"
+        ;;
+    *)
+        echo -e "${RED}❌ Unknown option: $1${NC}"
+        echo ""
+        show_usage
+        ;;
+esac
+
+# Check git repo
+if [ ! -d ".git" ]; then
+    echo -e "${RED}❌ ERROR: Not a git repository${NC}"
+    exit 1
+fi
+
+# Check pre-commit installed
+if ! command -v pre-commit &> /dev/null; then
+    echo -e "${RED}❌ ERROR: pre-commit not installed${NC}"
+    echo ""
+    echo "Install pre-commit:"
+    echo "  pip install pre-commit"
+    exit 1
+fi
+
+# Check config exists
+if [ ! -f ".pre-commit-config.yaml" ]; then
+    echo -e "${RED}❌ ERROR: .pre-commit-config.yaml not found${NC}"
+    exit 1
+fi
+
+# Install
+if [ "$ACTION" = "install" ]; then
+    echo "Installing hooks via pre-commit..."
+    echo ""
+
+    pre-commit install --hook-type commit-msg
+
+    echo ""
+    echo -e "${GREEN}✅ Hooks installed${NC}"
+    echo ""
+    echo "To add your own hooks:"
+    echo "  1. Edit .pre-commit-config.yaml"
+    echo "  2. Run: pre-commit install"
+    echo ""
+    echo "Documentation: https://pre-commit.com"
+fi
+
+# Uninstall
+if [ "$ACTION" = "uninstall" ]; then
+    echo "Uninstalling hooks..."
+    echo ""
+
+    pre-commit uninstall --hook-type commit-msg
+
+    echo ""
+    echo -e "${GREEN}✅ Hooks uninstalled${NC}"
+fi

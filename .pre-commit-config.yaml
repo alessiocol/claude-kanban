@@ -1,0 +1,28 @@
+# Multi-Agent Coordination Template - Pre-commit Config
+
+# This configuration uses the pre-commit framework to manage git hooks.
+# Benefits:
+#   - Multiple hooks can coexist (template hooks + your custom hooks)
+#   - Language-agnostic (works for any project)
+#   - Easy to add/remove hooks
+#   - Hooks are version controlled
+
+# Installation:
+#   pip install pre-commit
+#   ./.claude/workflow/hooks --install
+
+# See https://pre-commit.com for more information
+
+repos:
+  # Template hooks (commit message validation)
+  - repo: local
+    hooks:
+      - id: claude-commit-msg
+        name: Claude Commit Message Format
+        entry: .claude/hooks/git/commit-msg
+        language: system
+        stages: [commit-msg]
+
+  # Add your own hooks below
+  # See: https://pre-commit.com/hooks.html
+

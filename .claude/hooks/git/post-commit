@@ -1,0 +1,26 @@
+#!/bin/bash
+# Post-commit hook - Reminds agent to update ACTIVE.md periodically
+# This file is stored in .claude/hooks/git/ and symlinked to .git/hooks/post-commit
+
+# Count commits since last ACTIVE.md update
+COMMITS_SINCE=$(git log --oneline .claude/state/ACTIVE.md..HEAD 2>/dev/null | wc -l)
+
+# Only show reminder after several commits
+if [ $COMMITS_SINCE -ge 5 ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "⏰ REMINDER: Consider Updating ACTIVE.md"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "You've made $COMMITS_SINCE commits since last updating ACTIVE.md"
+  echo ""
+  echo "Consider updating with your progress:"
+  echo "  • What tasks you've completed (RECENTLY COMPLETED)"
+  echo "  • Any important decisions made (KEY DECISIONS)"
+  echo "  • Current status and next steps (NEXT UP)"
+  echo ""
+  echo "This helps the next agent (or future you) understand the context"
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+fi

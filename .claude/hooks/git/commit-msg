@@ -1,0 +1,64 @@
+#!/bin/bash
+# Commit-msg hook - Validates commit message format
+# This file is stored in .claude/hooks/git/ and symlinked to .git/hooks/commit-msg
+
+set -e
+
+COMMIT_MSG_FILE=$1
+
+if [ ! -f "$COMMIT_MSG_FILE" ]; then
+  echo "❌ ERROR: Commit message file not found: $COMMIT_MSG_FILE"
+  exit 1
+fi
+
+MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Skip validation for merge commits
+if echo "$MSG" | grep -q "^Merge "; then
+  exit 0
+fi
+
+# Require [phase N] or [workflow] or [setup] or [docs] prefix (all lowercase)
+if ! echo "$MSG" | grep -qE "^\[(phase [0-9]+|workflow|setup|docs|feat|fix|refactor|test|chore)\]"; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "❌ INVALID COMMIT MESSAGE FORMAT"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "Commit message must start with one of (all lowercase):"
+  echo "  [phase N]    - Implementation work (e.g., [phase 1] Add event store)"
+  echo "  [workflow]   - Workflow/coordination changes"
+  echo "  [setup]      - Project setup"
+  echo "  [docs]       - Documentation only"
+  echo "  [feat]       - New feature"
+  echo "  [fix]        - Bug fix"
+  echo "  [refactor]   - Code refactoring"
+  echo "  [test]       - Test additions"
+  echo "  [chore]      - Maintenance"
+  echo ""
+  echo "Your message:"
+  echo "  $MSG"
+  echo ""
+  echo "Example valid messages:"
+  echo "  [phase 1] Implement SQLite event store"
+  echo "  [phase 12] Add fundamental analyst agent"
+  echo "  [workflow] Update ACTIVE.md with progress"
+  echo "  [feat] Add event replay functionality"
+  echo ""
+  exit 1
+fi
+
+# Check minimum message length (excluding prefix)
+MSG_BODY=$(echo "$MSG" | sed 's/^\[[^]]*\] *//')
+if [ ${#MSG_BODY} -lt 10 ]; then
+  echo ""
+  echo "❌ COMMIT MESSAGE TOO SHORT"
+  echo ""
+  echo "Please provide a meaningful description (at least 10 characters)"
+  echo "Your message: $MSG"
+  echo ""
+  exit 1
+fi
+
+# All checks passed
+exit 0
