@@ -28,14 +28,11 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Display ACTIVE.md (lean state - only current work)
-if [ -f "${CLAUDE_PROJECT_DIR}/.claude/state/ACTIVE.md" ]; then
-    cat "${CLAUDE_PROJECT_DIR}/.claude/state/ACTIVE.md"
-elif [ -f "${CLAUDE_PROJECT_DIR}/PROJECT_STATE.md" ]; then
-    # Fallback to old location during transition
-    cat "${CLAUDE_PROJECT_DIR}/PROJECT_STATE.md"
+if [ -f "${CLAUDE_PROJECT_DIR}/ACTIVE.md" ]; then
+    cat "${CLAUDE_PROJECT_DIR}/ACTIVE.md"
 else
     echo -e "${RED}⚠️  WARNING: ACTIVE.md not found!${NC}"
-    echo "Expected location: .claude/state/ACTIVE.md"
+    echo "Expected location: ACTIVE.md (project root)"
     echo "This file tracks current sprint state and coordinates between agents."
 fi
 

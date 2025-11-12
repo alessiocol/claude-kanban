@@ -11,16 +11,16 @@
 This project uses a **Coordinator + Worker Agent** pattern:
 
 **COORDINATOR CLAUDE (talks to user):**
-- Maintains PROJECT_PROGRESS.md (big picture: phases, metrics, status)
+- Maintains `PROJECT_PROGRESS.md` (big picture: phases, metrics, status)
 - Spawns worker agents for specific tasks via Task tool
-- Reviews ACTIVE.md after agent completes work
-- Updates PROJECT_PROGRESS.md with progress
+- Reviews `ACTIVE.md` after agent completes work
+- Updates `PROJECT_PROGRESS.md` with progress
 - Reports to user
 
 **WORKER AGENT (spawned by Coordinator):**
-- Reads ACTIVE.md at start (hook enforces)
+- Reads `ACTIVE.md` at start (hook enforces)
 - Implements specific task from "NEXT UP"
-- Updates ACTIVE.md at end (hook enforces)
+- Updates `ACTIVE.md` at end (hook enforces)
 - Returns completion report to Coordinator
 
 ```
@@ -62,69 +62,32 @@ User ←→ Coordinator Claude ←→ [spawns] ←→ Worker Agent
 - **`.claude/agents/*.md`** - Agent persona definitions
   - Read when: Spawning worker/review agents (load → customize → spawn)
 
-### 🔧 Read When Stuck
-- **`.claude/README.md`** - Hook system details
-- **`.claude/state/archive/`** - Historical decisions
-
 **Golden Rule:** Don't load what you don't need. Context is precious. Load on-demand.
 
 ---
 
-## Context Management & Auto-Compact
+## Context Management
 
-### Understanding Context Usage
+**For long-term projects:**
 
-**Claude Code uses token-based context** with automatic compression:
-- **Auto-compact enabled by default** - Triggers at 95% capacity
-- **Manual trigger:** `/compact` command anytime
-- **Toggle:** `/config` → "Auto-compact enabled"
-- **Custom focus:** `/compact Focus on code samples and API usage`
+1. **Bounded Context**
+   - `ACTIVE.md` stays ~200 lines (only current work)
+   - Completed work documented in `PROJECT_PROGRESS.md` as summaries
+   - Active phase stays detailed; completed phases = brief summaries
 
-### Coordinator Context Strategy
-
-**For long-term projects, Coordinator context management is critical:**
-
-1. **Progressive Compression (Automatic)**
-   - PROJECT_PROGRESS.md compresses completed phases to summaries
-   - Detailed checklists archived: `.claude/state/archive/phase-N-checklist.md`
-   - Active phase stays detailed; completed phases = 3-4 line summaries
-   - Result: PROJECT_PROGRESS.md stays ~200-300 lines
-
-2. **Lean State Loading**
-   - Always load: ACTIVE.md (~200 lines), PROJECT_PROGRESS.md (~250 lines)
-   - Load on-demand: VISION.md, ROADMAP.md, agent personas
-   - Archive: Historical work in `.claude/state/archive/`
-   - Result: ~450 lines base + targeted loads
-
-3. **Session Boundaries**
+2. **Session Boundaries**
    - End Coordinator session after major milestones
-   - Next session: Fresh context, continuous state (ACTIVE.md + PROJECT_PROGRESS.md)
+   - Next session: Fresh context, continuous state via `ACTIVE.md` + `PROJECT_PROGRESS.md`
    - Use `/clear` between unrelated tasks
 
-4. **Auto-Compact Guidance**
-   - When auto-compact triggers: Focus on current phase, ACTIVE.md state
-   - Preserve: Recent decisions (ACTIVE.md Key Decisions), current task context
+3. **Auto-Compact Guidance**
+   - When auto-compact triggers: Focus on current task, `ACTIVE.md` state
+   - Preserve: Recent decisions, current task context
    - Compress: Historical discussion, completed phase details
-   - Manual compact if conversation gets lengthy: `/compact Preserve ACTIVE.md state and current task context`
-
-### Summary Instructions for Auto-Compact
-
-When Claude Code auto-compacts this conversation (at 95% capacity), preserve:
-- **Current task context:** What we're working on right now
-- **ACTIVE.md state:** In Progress, Next Up, Recent Completions, Key Decisions
-- **Current phase status:** PROJECT_PROGRESS.md active phase section
-- **Coordinator role:** User talks to Coordinator, not worker agents
-- **Recent decisions:** Last 5 from ACTIVE.md
-
-Aggressively compress:
-- Historical milestone details (archived in `.claude/state/archive/`)
-- Completed phase checklists (link to archive files)
-- Long exploratory discussions
-- Implementation details (in git commits)
 
 ---
 
-### Core Principle: DETERMINISTIC HANDOVER
+## Core Workflow: DETERMINISTIC HANDOVER
 
 Worker agents follow a simple 3-step workflow:
 
@@ -138,14 +101,11 @@ Worker agents follow a simple 3-step workflow:
 
 ---
 
-## How It Works
-
-### Step 1: Session Start (Automatic)
+## Step 1: Session Start (Automatic)
 
 **What happens:**
-- Session-start hook automatically displays ACTIVE.md
+- Session-start hook automatically displays `ACTIVE.md`
 - You see: what's in progress, what's next, recent completions, key decisions, project rules
-- You acknowledge understanding
 
 **Your action:**
 ```
@@ -153,24 +113,24 @@ Type: "Read ACTIVE.md - working on [brief task description]"
 ```
 
 **Why this matters:**
-- Prevents "agentic Alzheimer's" (forgetting past decisions)
+- Prevents context amnesia (forgetting past decisions)
 - Ensures you start with full context
 - DETERMINISTIC - you can't skip this step
 
 ---
 
-### Step 2: Do Your Work
+## Step 2: Do Your Work
 
 **Implementation:**
 1. Work on the task defined in "NEXT UP"
-2. Follow "PROJECT RULES" (in ACTIVE.md)
+2. Follow "PROJECT RULES" (in `ACTIVE.md`)
 3. Write tests as you develop
 4. Commit frequently: `git commit -m "[phase N] Brief description"`
 5. Document decisions as you make them
 
 **Key practices:**
 
-#### Commit Early and Often
+### Commit Early and Often
 ```bash
 # Good commit pattern:
 git commit -m "[phase 1] Add database schema"
@@ -178,12 +138,12 @@ git commit -m "[phase 1] Implement data access layer"
 git commit -m "[phase 1] Add integration tests"
 ```
 
-#### Follow Project Architecture
-- Respect architectural boundaries defined in VISION.md (if it exists)
+### Follow Project Architecture
+- Respect architectural boundaries defined in `VISION.md` (if it exists)
 - Follow dependency rules (e.g., only import from lower layers)
 - Keep concerns separated (business logic vs infrastructure)
 
-#### Use Type Safety
+### Use Type Safety
 ```python
 # Good - enum for constants
 from enum import Enum
@@ -199,11 +159,11 @@ status = "pending"  # ❌ Don't do this
 
 ---
 
-### Step 3: Session End (Manual - Your Responsibility)
+## Step 3: Session End (Manual - Your Responsibility)
 
 **Before ending your session, complete the HANDOVER CHECKLIST:**
 
-#### 1. Update ACTIVE.md
+### 1. Update ACTIVE.md
 
 **Required changes:**
 ```markdown
@@ -224,40 +184,35 @@ status = "pending"  # ❌ Don't do this
 **Last Updated:** [Today's date] - [Brief description]
 ```
 
-#### 2. Verify Your Work
+### 2. Verify Your Work
 ```bash
 # Check what you're committing
 git status
 
 # Commit ACTIVE.md update
-git add .claude/state/ACTIVE.md
+git add ACTIVE.md
 git commit -m "[workflow] Update active state - completed [task]"
 
 # Push everything
 git push origin [your-branch]
 ```
 
-#### 3. Final Checklist
-- [ ] ACTIVE.md updated with your work
+### 3. Final Checklist
+- [ ] `ACTIVE.md` updated with your work
 - [ ] Key decisions documented
 - [ ] Next task clearly defined
 - [ ] All code committed and pushed
 - [ ] Tests passing (if applicable)
 
-**Why this matters:**
-- Next agent starts with YOUR context
-- No gap in understanding
-- Continuous progress without rework
-
 ---
 
 ## Project Rules
 
-**Project-specific rules should be defined in ACTIVE.md** under the "PROJECT RULES" section. This keeps them visible to all agents and easy to update as your project evolves.
+**Project-specific rules should be defined in `ACTIVE.md`** under the "PROJECT RULES" section. This keeps them visible to all agents and easy to update as your project evolves.
 
 **Common patterns across projects:**
 
-1. **Testing:** Write tests as you develop (define coverage targets in ACTIVE.md)
+1. **Testing:** Write tests as you develop (define coverage targets in `ACTIVE.md`)
 2. **Type Safety:** Use type hints and enums for better error checking
 3. **No Hardcoded Values:** Use configuration system for constants and thresholds
 4. **Architecture:** Respect layer boundaries and separation of concerns
@@ -265,7 +220,7 @@ git push origin [your-branch]
 6. **Dependencies:** Use your project's dependency management system consistently
 
 **To customize for your project:**
-- Add specific rules to ACTIVE.md → PROJECT RULES section
+- Add specific rules to `ACTIVE.md` → PROJECT RULES section
 - Include language-specific guidelines (e.g., Decimal for financial data in Python)
 - Define architectural patterns to follow (e.g., event sourcing, CQRS)
 - Set testing standards (coverage targets, testing approach)
@@ -280,18 +235,18 @@ git push origin [your-branch]
 ### Your Responsibilities:
 
 1. **Strategic Planning:**
-   - Check PROJECT_PROGRESS.md to understand current phase/week
+   - Check `PROJECT_PROGRESS.md` to understand current phase/week
    - Decide what work needs to be done next
    - Break down user requests into specific tasks
 
 2. **Agent Spawning:**
    - Spawn worker agents via Task tool for specific work
    - Provide clear task descriptions
-   - Worker agents will read ACTIVE.md automatically (hook)
+   - Worker agents will read `ACTIVE.md` automatically (hook)
 
 3. **Progress Tracking:**
-   - After worker agent completes, review ACTIVE.md updates
-   - Update PROJECT_PROGRESS.md:
+   - After worker agent completes, review `ACTIVE.md` updates
+   - Update `PROJECT_PROGRESS.md`:
      - Check off completed tasks
      - Update phase completion percentage
      - Update metrics (test coverage, type safety, documentation, technical debt, hook compliance)
@@ -302,48 +257,11 @@ git push origin [your-branch]
    - Ask for decisions when needed
    - Explain what was done and what's next
 
-### Coordinator Workflow Example:
-
-```
-User: "Let's implement user authentication"
-
-Step 1 - Check Context:
-- Read PROJECT_PROGRESS.md → Phase 1, Current sprint
-- Read ACTIVE.md → Next task: Authentication Module
-- Understand: Need to create auth service + database schema
-
-Step 2 - Spawn Worker:
-- Use Task tool (subagent_type: "general-purpose")
-- Prompt: "You are a worker agent. Implement Authentication Module per ACTIVE.md.
-  Read ACTIVE.md for requirements. Create auth service, database schema.
-  Implement login/logout endpoints with JWT tokens.
-  Write tests (coverage target per ACTIVE.md). Update ACTIVE.md when done."
-
-Step 3 - Review Results:
-- Worker completes, returns report
-- Read updated ACTIVE.md
-- See what was completed, decisions made
-
-Step 4 - Update Big Picture:
-- Update PROJECT_PROGRESS.md:
-  * Authentication Module [x] checkboxes
-  * Test coverage: 85%
-  * Phase 1 completion: 25% → 50%
-
-Step 5 - Report to User:
-"Authentication complete! ✅
-- JWT-based authentication with tests (85% coverage)
-- Login/logout endpoints implemented
-- Database schema created
-
-Next: Authorization & Permissions. Ready to proceed?"
-```
-
 ### Spawning Agents via Task Tool:
 
 **The Claude-Native Way:**
 
-Agent persona definitions are stored in `.claude/agents/` for consistency. Here's the actual workflow:
+Agent persona definitions are stored in `.claude/agents/` for consistency. Here's the workflow:
 
 **Step 1:** Read the persona file
 ```
@@ -352,7 +270,7 @@ Use Read tool: .claude/agents/worker.md
 
 **Step 2:** Extract the "Agent Prompt Template" section from the tool result
 
-**Step 3:** Mentally substitute template variables:
+**Step 3:** Customize the template:
 - Replace `{TASK_DESCRIPTION}` with task details
 - Replace `{TASK_REQUIREMENTS}` with specific requirements
 - Replace `{TASK_NAME}` with task name
@@ -361,47 +279,9 @@ Use Read tool: .claude/agents/worker.md
 ```
 Tool: Task
 subagent_type: "general-purpose"
-description: "Implement Authentication Module"
+description: "Implement [Task Name]"
 prompt: [the customized prompt from Step 3]
 ```
-
-That's it. No scripting needed - just Read → Customize → Task.
-
-**Manual Prompt (For Reference Only):**
-
-> **⚠️ NOTE:** Always use persona files from `.claude/agents/` for actual agent spawning.
-> Manual prompts shown below are for illustration only and may drift from the authoritative persona definitions.
-
-<details>
-<parameter name="summary">Click to see example inline prompt (not recommended for production use)</summary>
-
-```python
-# Use Task tool to spawn worker agent
-{
-  "subagent_type": "general-purpose",
-  "description": "Implement Authentication Module",
-  "prompt": """You are a WORKER AGENT.
-
-Your task: Implement user authentication per ACTIVE.md requirements.
-
-ACTIVE.md will be displayed automatically via session-start hook.
-Read it carefully for context.
-
-Requirements:
-1. Create auth service structure
-2. Implement login/logout endpoints
-3. Add JWT token generation and validation
-4. Create database schema for users
-5. Write tests (coverage target per ACTIVE.md)
-
-Before ending:
-- Update ACTIVE.md (RECENTLY COMPLETED, KEY DECISIONS, NEXT UP)
-- Commit and push all changes
-
-Return a brief completion report."""
-}
-```
-</details>
 
 **Available Agent Personas:**
 - `.claude/agents/worker.md` - Implementation agent
@@ -418,12 +298,12 @@ See `.claude/agents/README.md` for complete persona documentation.
 ❌ **Coordinator should NOT:**
 - Write implementation code directly
 - Get lost in tactical details
-- Forget to update PROJECT_PROGRESS.md
+- Forget to update `PROJECT_PROGRESS.md`
 
 ✅ **Coordinator SHOULD:**
 - Maintain big picture view
 - Spawn agents for implementation
-- Keep PROJECT_PROGRESS.md current
+- Keep `PROJECT_PROGRESS.md` current
 - Communicate clearly with user
 
 ---
@@ -434,10 +314,10 @@ See `.claude/agents/README.md` for complete persona documentation.
 
 ### Your Responsibilities:
 
-1. **Read Context:** ACTIVE.md displayed automatically (hook)
+1. **Read Context:** `ACTIVE.md` displayed automatically (hook)
 2. **Implement Task:** Do the specific work from "NEXT UP"
-3. **Follow Rules:** PROJECT RULES in ACTIVE.md
-4. **Update State:** Mark done in ACTIVE.md before ending
+3. **Follow Rules:** PROJECT RULES in `ACTIVE.md`
+4. **Update State:** Mark done in `ACTIVE.md` before ending
 5. **Report Back:** Return completion summary to Coordinator
 
 ### Worker Workflow:
@@ -506,16 +386,6 @@ UNCLAIMED → IN_PROGRESS (Worker implements)
 - `IN_REVIEW → ADDRESSING_FEEDBACK` (changes needed)
 - `ADDRESSING_FEEDBACK → IN_REVIEW` (fixes done)
 
-**Enforcement:**
-- ✅ Command validates transition before updating ACTIVE.md
-- ✅ Pre-commit hook validates state changes
-- ✅ Invalid transitions are blocked
-- ✅ Manual edits with invalid states are caught
-
-**After using transition command:**
-1. Move the task block to the appropriate section in ACTIVE.md
-2. Commit: `git commit -m "[workflow] TASK-XXX: STATE → STATE"`
-
 ---
 
 ### Coordinator Review Workflow:
@@ -534,23 +404,10 @@ Coordinator actions:
 
 **Step 2: Spawn Review Agents (Parallel)**
 
-**The Claude-Native Way:**
-
 1. Read persona files: `.claude/agents/staff-engineer.md` and `.claude/agents/tdd-expert.md`
 2. Extract "Agent Prompt Template" sections from both
-3. Customize each with task details:
-   - Staff Engineer: {TASK_NAME}, {CODE_LOCATION}, {COMMIT_HASH}, {DATE}
-   - TDD Expert: {TASK_NAME}, {TEST_LOCATION}, {COMMIT_HASH}, {DATE}
+3. Customize each with task details
 4. Spawn both agents in parallel (single message, multiple Task tool calls)
-
-**Example:**
-```
-Use Task tool twice in one message:
-- First: Staff Engineer review with customized prompt
-- Second: TDD Expert review with customized prompt
-```
-
-> **💡 TIP:** All review agent templates are in `.claude/agents/`. Always read the persona file for the latest criteria.
 
 **Step 3: Collect Review Feedback**
 ```
@@ -560,47 +417,35 @@ Scenario A: All reviews APPROVED
 → Coordinator: `.claude/workflow/transition TASK-001 IN_REVIEW COMPLETED`
 → Moves task to "RECENTLY COMPLETED" section
 → Updates PROJECT_PROGRESS.md
-→ Reports to user: "Authentication module complete and reviewed!"
+→ Reports to user
 
 Scenario B: Some reviews REQUEST_CHANGES
 → Coordinator: `.claude/workflow/transition TASK-001 IN_REVIEW ADDRESSING_FEEDBACK`
-→ Moves task to "ADDRESSING FEEDBACK" section
 → Spawns worker agent to fix issues
-→ Worker addresses feedback, reports completion
-→ Coordinator: `.claude/workflow/transition TASK-001 ADDRESSING_FEEDBACK IN_REVIEW`
-→ Moves task back to "IN_REVIEW" section
-→ Re-spawns reviewers (or subset if only some requested changes)
+→ After fixes: `.claude/workflow/transition TASK-001 ADDRESSING_FEEDBACK IN_REVIEW`
+→ Re-spawns reviewers
 
 Scenario C: Any review BLOCKED
 → Coordinator escalates to user
 → User and Coordinator decide next steps
-→ May require architecture discussion
 ```
 
 **Step 4: Feedback Loop (If Changes Needed)**
 
-**The Claude-Native Way:**
-
 1. Read `.claude/agents/worker.md` using Read tool
 2. Extract the "Agent Prompt Template" section
-3. Customize for feedback addressing:
-   - {TASK_DESCRIPTION}: "Address review feedback for Authentication Module"
-   - {TASK_REQUIREMENTS}: List specific issues from reviews
-   - {TASK_NAME}: "Authentication Module - Addressing Feedback"
+3. Customize for feedback addressing
 4. Spawn worker using Task tool with customized prompt
-5. After worker completes, use transition command:
-   ```bash
-   .claude/workflow/transition TASK-001 ADDRESSING_FEEDBACK IN_REVIEW
-   ```
+5. After worker completes, transition back to `IN_REVIEW`
 
 ### Review Agent Workflow:
 
 **If you are a REVIEW AGENT:**
 
-1. **Session Start:** Read ACTIVE.md (automatic)
+1. **Session Start:** Read `ACTIVE.md` (automatic)
 2. **Find Your Task:** Check "IN REVIEW" section
 3. **Review the Code:** Read implementation + tests thoroughly
-4. **Add Feedback:** Update ACTIVE.md with your review
+4. **Add Feedback:** Update `ACTIVE.md` with your review
 5. **Mark Status:** APPROVED, REQUEST_CHANGES, or BLOCKED
 6. **Report to Coordinator:** Completion summary
 
@@ -609,8 +454,8 @@ Scenario C: Any review BLOCKED
 ## 🔍 IN REVIEW
 
 **[TASK-001] Authentication Module**
-- State: IN_REVIEW
-- Reviewers: Staff Engineer, TDD Expert, Security Reviewer
+- State: `IN_REVIEW`
+- Reviewers: Staff Engineer, TDD Expert
 - Implementation commit: abc123f
 
 ### Reviews:
@@ -620,7 +465,6 @@ Scenario C: Any review BLOCKED
 - **Issues found:** None
 - **Recommendations:**
   - Consider adding token refresh mechanism
-  - Document the session management strategy
 - **Blocking concerns:** None
 
 #### TDD Expert Review - 2025-11-12
@@ -629,26 +473,21 @@ Scenario C: Any review BLOCKED
 - **Issues found:**
   - Missing tests for token expiration
   - Error case for invalid credentials not tested
-- **Missing tests:**
-  - test_token_expiration_handling
-  - test_invalid_credentials_error
 - **Blocking concerns:** None (can be fixed quickly)
 ```
 
 ### When to Require Reviews:
 
 **Phase 1 (Foundation):** Reviews for ALL tasks
-- Foundation is critical, sets quality standards for entire project
-- Staff Engineer + TDD Expert minimum
+- Foundation is critical, sets quality standards
 
 **Phase 2+ (Core Features):** Reviews for:
 - New core services or modules
-- Critical business logic (add Security + Performance reviewers where appropriate)
-- External integrations (Security + Staff Engineer)
+- Critical business logic
+- External integrations
 - Critical bug fixes
 
 **Phase 5+ (Production):** Reviews for ALL changes
-- Production-ready code requires full review process
 
 ### Review Decision Criteria:
 
@@ -656,20 +495,17 @@ Scenario C: Any review BLOCKED
 - Code meets standards
 - Tests adequate
 - No blocking issues
-- Minor recommendations okay
 
 **REQUEST_CHANGES:**
 - Issues found that should be fixed
 - Missing tests or documentation
-- Code quality improvements needed
 - NOT blocking, but should be addressed
 
 **BLOCKED:**
 - Critical flaw found
 - Architecture violation
 - Security vulnerability
-- Insufficient test coverage on critical path
-- Requires immediate attention before proceeding
+- Requires immediate attention
 
 ---
 
@@ -677,31 +513,24 @@ Scenario C: Any review BLOCKED
 
 ### Scenario: I'm the First Agent (Phase 1, Starting Fresh)
 
-**Context:** No code exists yet, starting fresh
-
-**Your task:**
-1. Read ACTIVE.md (session-start hook shows it)
+1. Read `ACTIVE.md` (session-start hook shows it)
 2. See "NEXT UP" → Set up project structure
 3. Create: project structure, dependencies, initial module
-4. Update ACTIVE.md when done
+4. Update `ACTIVE.md` when done
 5. Next agent continues from your state
 
 ### Scenario: I'm in the Middle (Phase 2+)
 
-**Context:** Foundation exists, working on core features
-
-**Your task:**
-1. Read ACTIVE.md → See what's done, what's next
+1. Read `ACTIVE.md` → See what's done, what's next
 2. Check "KEY DECISIONS" → Understand past choices
-3. Implement your task (e.g., new service module or feature)
-4. Update ACTIVE.md → Mark done, define next task
+3. Implement your task
+4. Update `ACTIVE.md` → Mark done, define next task
 5. Next agent continues
 
 ### Scenario: I Found a Bug in Previous Work
 
-**Your action:**
 1. Fix the bug
-2. Add decision to ACTIVE.md:
+2. Add decision to `ACTIVE.md`:
    ```markdown
    ### [Date] Fixed database query bug
    - Issue: Records not ordered correctly
@@ -712,15 +541,13 @@ Scenario C: Any review BLOCKED
 
 ### Scenario: I'm Blocked by Missing Information
 
-**Your action:**
-1. Add note to ACTIVE.md and ask user for clarification
+1. Add note to `ACTIVE.md` and ask user for clarification
 2. Work on unblocked tasks while waiting
 3. When resolved, document decision in KEY DECISIONS
 
 ### Scenario: I Need to Change Architecture
 
-**Your action:**
-1. Document decision in ACTIVE.md → KEY DECISIONS
+1. Document decision in `ACTIVE.md` → KEY DECISIONS
 2. Explain rationale clearly (next agent needs context)
 3. Update affected areas
 4. Note impact in decision log
@@ -730,25 +557,24 @@ Scenario C: Any review BLOCKED
 ## Reference Documents
 
 ### Strategic/Architectural
-- **VISION.md** - Product vision, architecture, design principles
-- **ROADMAP.md** - Detailed 6-month, 6-phase implementation plan
+- `VISION.md` - Product vision, architecture, design principles
+- `ROADMAP.md` - Detailed implementation plan
 
 ### Coordination
-- **PROJECT_PROGRESS.md** - Big picture tracking (Coordinator maintains)
-- **.claude/state/ACTIVE.md** - Active sprint state (Worker agents read/update)
-- **.claude/state/archive/** - Historical state and completed work
-- **.claude/agents/** - Reusable agent persona definitions
-- **CLAUDE.md** - This file, explains workflow and roles
+- `PROJECT_PROGRESS.md` - Big picture tracking (Coordinator maintains)
+- `ACTIVE.md` - Active sprint state (Worker agents read/update)
+- `.claude/agents/` - Reusable agent persona definitions
+- `CLAUDE.md` - This file, explains workflow and roles
 
 ### Technical
-- **.claude/hooks/session-start.sh** - Session start hook script
-- **.claude/settings.json** - Hook registration
+- `.claude/hooks/session-start.sh` - Session start hook script
+- `.claude/settings.json` - Hook registration
 
 ---
 
 ## Why This Works
 
-### Problem: "Agentic Alzheimer's"
+### Problem: Context Amnesia
 - Agent starts session, doesn't know what was done
 - Forgets critical decisions from days ago
 - Re-implements things differently
@@ -756,7 +582,7 @@ Scenario C: Any review BLOCKED
 
 ### Solution: DETERMINISTIC Flow
 - ✅ Session-start hook forces context load
-- ✅ ACTIVE.md preserves recent decisions and current state
+- ✅ `ACTIVE.md` preserves recent decisions and current state
 - ✅ Handover checklist enforces documentation
 - ✅ Next agent picks up exactly where you left off
 - ✅ Context-efficient: stays ~200 lines regardless of project length
@@ -766,46 +592,22 @@ Scenario C: Any review BLOCKED
 2. **No conflicts** - Clear task ownership (NEXT UP)
 3. **No rework** - Next agent knows what's done
 4. **Continuous progress** - Seamless handover
-5. **Constant context usage** - Lean active state + archived history
-
----
-
-## Quick Start (If You're Reading This First Time)
-
-1. **Understand the flow:**
-   ```
-   Session Start → Read ACTIVE.md
-   Work → Follow PROJECT RULES
-   Session End → Update ACTIVE.md
-   ```
-
-2. **Key file to read:**
-   - `.claude/state/ACTIVE.md` - Contains everything you need
-
-3. **Your responsibilities:**
-   - Read context at start
-   - Do your work following rules
-   - Document handover at end
-
-4. **That's it!**
-   - System is designed to be simple
-   - Hooks enforce the process
-   - You can't skip steps
+5. **Constant context usage** - Bounded active state
 
 ---
 
 ## Tips for Effective Coordination
 
 ### DO:
-- ✅ Read ACTIVE.md completely at session start
+- ✅ Read `ACTIVE.md` completely at session start
 - ✅ Commit frequently with clear messages
 - ✅ Document decisions as you make them
-- ✅ Update ACTIVE.md before ending session
+- ✅ Update `ACTIVE.md` before ending session
 - ✅ Define clear "NEXT UP" for next agent
 - ✅ Ask user when blocked (don't guess)
 
 ### DON'T:
-- ❌ Skip reading ACTIVE.md
+- ❌ Skip reading `ACTIVE.md`
 - ❌ Change architecture without documenting
 - ❌ Leave session without updating state
 - ❌ Make vague "NEXT UP" entries

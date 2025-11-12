@@ -1,35 +1,61 @@
-# Multi-Agent Coordination Template
+# Claude Kanban
 
-A deterministic workflow system for coordinating multiple Claude agents over long-term, multi-phase projects without context loss.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub last commit](https://img.shields.io/github/last-commit/alessiocol/claude-kanban)](https://github.com/alessiocol/claude-kanban/commits)
+[![GitHub issues](https://img.shields.io/github/issues/alessiocol/claude-kanban)](https://github.com/alessiocol/claude-kanban/issues)
+
+A Kanban-inspired workflow system for coordinating multiple Claude agents over long-term, multi-phase projects. Uses state transitions, visual workflows, and enforced WIP limits to prevent context loss between agent sessions.
 
 ## What is This?
 
-This template provides a **battle-tested coordination system** that solves the "agentic Alzheimer's" problem - where AI agents lose context between sessions, forget past decisions, and break each other's work.
+This template addresses the context amnesia problem - where AI agents lose context between sessions, forget past decisions, and break each other's work. It applies Kanban principles to AI agent coordination: visualize work, limit WIP, manage flow, and make process explicit.
 
-**Key Benefits:**
-- ✅ **Zero Context Loss:** Every decision is documented and preserved
-- ✅ **Deterministic Handovers:** Agents always know what was done and what's next
-- ✅ **Parallel Reviews:** Multi-role review workflow (Staff Engineer, TDD Expert, QA, Security, Performance)
-- ✅ **Scalable:** Maintains constant ~200-line active context regardless of project length
-- ✅ **Hook-Based Enforcement:** Git and session hooks ensure process discipline
+**Key Features:**
+- **Kanban Board States:** Tasks flow through defined states (`UNCLAIMED` → `IN_PROGRESS` → `IN_REVIEW` → `COMPLETED`)
+- **WIP Limits:** Only one task in progress per agent to maintain focus
+- **Visual Workflow:** Clear state tracking in `ACTIVE.md` (your kanban board)
+- **Pull System:** Agents pull tasks from the backlog when ready, not pushed randomly
+- **Continuous Flow:** Documented handovers enable seamless agent-to-agent transitions
+- **Process Enforcement:** Git hooks ensure discipline without manual overhead
 
 ## Architecture
 
-**Two-Role Pattern:**
-```
-User ←→ Coordinator Claude ←→ Worker Agents
-         ↓                      ↓
-    PROJECT_PROGRESS.md     ACTIVE.md
-    (big picture)           (current sprint)
+```mermaid
+graph TD
+    User(User)
+    Coordinator(Coordinator Claude)
+    Worker1(Worker Agent)
+    Worker2(Worker Agent)
+    Progress(PROJECT_PROGRESS.md<br/>Big Picture)
+    Active(ACTIVE.md<br/>Current Sprint)
+
+    User <--> Coordinator
+    Coordinator --> Worker1
+    Coordinator --> Worker2
+    Coordinator <--> Progress
+    Coordinator <--> Active
+    Worker1 <--> Active
+    Worker2 <--> Active
+
+    classDef userStyle fill:#E8EAF6,stroke:#5C6BC0,stroke-width:2px,color:#000
+    classDef coordStyle fill:#C5E1A5,stroke:#7CB342,stroke-width:2px,color:#000
+    classDef workerStyle fill:#E0E0E0,stroke:#757575,stroke-width:2px,color:#000
+    classDef fileStyle fill:#FFF9C4,stroke:#FBC02D,stroke-width:2px,color:#000
+
+    class User userStyle
+    class Coordinator coordStyle
+    class Worker1,Worker2 workerStyle
+    class Progress,Active fileStyle
 ```
 
-**Core Components:**
-- **ACTIVE.md** - Current sprint state (~200 lines, loaded every session via hook)
-- **PROJECT_PROGRESS.md** - Big picture tracking (phases, metrics, progress)
-- **CLAUDE.md** - Workflow guide (roles, coordination patterns, examples)
-- **.claude/agents/** - Reusable agent personas (Worker, Staff Engineer, TDD Expert, QA, Security, Performance)
-- **.claude/hooks/** - Git and session hooks for enforcement
-- **.claude/workflow/** - State transition validation scripts
+**Two-Role Pattern:**
+- **Coordinator** - Talks to user, reviews/updates `ACTIVE.md`, maintains `PROJECT_PROGRESS.md`, spawns agents
+- **Workers** - Implement tasks, update `ACTIVE.md`, report completion to Coordinator
+
+**Core Files:**
+- `ACTIVE.md` - Current sprint state (~200 lines, loaded every session)
+- `PROJECT_PROGRESS.md` - Big picture tracking (phases, metrics, progress)
+- `CLAUDE.md` - Complete workflow guide
 
 ## Quick Start
 
@@ -41,89 +67,147 @@ pip install pre-commit
 
 # Install hooks
 ./.claude/workflow/hooks --install
-
-# To uninstall
-./.claude/workflow/hooks --uninstall
 ```
 
 ### 2. Customize for Your Project
 
-See [TEMPLATE_GUIDE.md](TEMPLATE_GUIDE.md) for step-by-step instructions on:
-- Creating your VISION.md (architecture, design principles)
-- Creating your ROADMAP.md (phase-by-phase plan)
-- Creating PROJECT_PROGRESS.md (tracking your actual project)
-- Defining project-specific rules in ACTIVE.md
-- Customizing commit-msg validation
+**Create your project files:**
+
+1. `VISION.md` - Your architecture and design principles
+2. `ROADMAP.md` - Your phase-by-phase implementation plan
+3. `PROJECT_PROGRESS.md` - Track progress (Coordinator maintains)
+4. `ACTIVE.md` - Update with first task and project rules
+
+**Customize commit validation:**
+
+Edit `.claude/hooks/git/commit-msg` to add/remove tags.
+
+**Add custom hooks:**
+
+Edit `.pre-commit-config.yaml` to add linting, formatting, etc.
 
 ### 3. Start Your First Sprint
 
-1. Update ACTIVE.md with your first task
-2. Spawn a worker agent (Coordinator reads `.claude/agents/worker.md` → customizes → spawns)
-3. Worker implements, updates ACTIVE.md, commits
+1. Update `ACTIVE.md` with your first task
+2. Coordinator reads `.claude/agents/worker.md` → customizes → spawns worker
+3. Worker implements, updates `ACTIVE.md`, commits
 4. Spawn review agents if needed
 5. Continue!
 
 ## How It Works
 
-**Session Start (Automatic):**
-- Hook displays ACTIVE.md
-- Agent sees: what's in progress, what's next, recent decisions, project rules
+```mermaid
+sequenceDiagram
+    participant User
+    participant Coordinator
+    participant Worker
+    participant ACTIVE.md
 
-**Do Work:**
-- Follow PROJECT RULES in ACTIVE.md
-- Commit frequently
-- Document decisions as you make them
+    User->>Coordinator: Request feature
+    Coordinator->>ACTIVE.md: Check context
+    Coordinator->>Worker: Spawn with task
+    Worker->>ACTIVE.md: Read state
+    Worker->>Worker: Implement
+    Worker->>ACTIVE.md: Update handover
+    Worker->>Coordinator: Report done
+    Coordinator->>User: Feature complete
+```
 
-**Session End (Manual):**
-- Update ACTIVE.md (handover checklist)
-- Commit and push
-- Next agent continues from your state
+**Session Flow:**
+1. **Start** - Hook displays `ACTIVE.md` automatically
+2. **Work** - Follow PROJECT RULES, commit frequently, document decisions
+3. **End** - Update `ACTIVE.md` handover, commit, push
 
-## Multi-Role Reviews
+## Kanban Board States
 
-For critical work, coordinate peer reviews:
+```mermaid
+stateDiagram-v2
+    [*] --> UNCLAIMED
+    UNCLAIMED --> IN_PROGRESS: Coordinator spawns worker
+    IN_PROGRESS --> IN_REVIEW: Worker completes
+    IN_REVIEW --> COMPLETED: All reviews approved
+    IN_REVIEW --> ADDRESSING_FEEDBACK: Changes needed
+    ADDRESSING_FEEDBACK --> IN_REVIEW: Fixes complete
+    COMPLETED --> [*]
+```
+
+Tasks flow through your Kanban board (`ACTIVE.md`) with clear state transitions. The Coordinator moves tasks between states using the `.claude/workflow/transition` command, enforcing proper workflow progression.
+
+**Board Columns:**
+- **`UNCLAIMED`** - Backlog of tasks ready to start
+- **`IN_PROGRESS`** - Active work (WIP limit: 1 per agent)
+- **`IN_REVIEW`** - Awaiting review from multiple agents in parallel
+- **`ADDRESSING_FEEDBACK`** - Fixes being implemented
+- **`COMPLETED`** - Done, moved to "RECENTLY COMPLETED" section
 
 **Available Reviewers:**
-- **Staff Engineer:** Architecture, design patterns, code structure
-- **TDD Expert:** Test quality, coverage, TDD practices
-- **QA Engineer:** End-to-end functionality, edge cases
-- **Security Reviewer:** Vulnerabilities, data protection
-- **Performance Reviewer:** Efficiency, scalability
+- **Staff Engineer** - Architecture, design patterns
+- **TDD Expert** - Test quality, coverage
+- **QA Engineer** - End-to-end functionality, edge cases
+- **Security Reviewer** - Vulnerabilities, data protection
+- **Performance Reviewer** - Efficiency, scalability
 
-**State Machine:**
-```
-UNCLAIMED → IN_PROGRESS → IN_REVIEW → COMPLETED
-                             ↓
-                      ADDRESSING_FEEDBACK
-                             ↓
-                      (back to IN_REVIEW)
+## Why Kanban for AI Agents?
+
+Traditional Kanban manages human work. Claude Kanban adapts these principles for AI agents:
+
+| Kanban Principle | Claude Kanban Implementation |
+|------------------|------------------------------|
+| **Visualize Work** | `ACTIVE.md` acts as your board with clear sections |
+| **Limit WIP** | One task per agent, enforced by state machine |
+| **Manage Flow** | State transitions track progress (`UNCLAIMED` → `COMPLETED`) |
+| **Make Process Explicit** | `CLAUDE.md` documents workflow, hooks enforce it |
+| **Continuous Improvement** | Archive completed work, compress to maintain focus |
+
+**Traditional Multi-Agent Problem:**
+```mermaid
+graph LR
+    A[Agent A] -.context lost.-> B[Agent B]
+    B -.forgot decisions.-> C[Agent C]
+    C -.breaks code.-> A
 ```
 
-Use `.claude/workflow/transition` command for deterministic state changes.
+**This Template's Solution:**
+```mermaid
+graph TD
+    A[Agent A] -->|updates| ACTIVE[ACTIVE.md]
+    ACTIVE -->|loads| B[Agent B]
+    B -->|updates| ACTIVE
+    ACTIVE -->|loads| C[Agent C]
+    Hook[Session Hook] -.enforces.-> ACTIVE
+```
+
+- ✅ Hook forces context load (`ACTIVE.md`) every session
+- ✅ Handover checklist enforces documentation
+- ✅ State machine validates transitions
+- ✅ Context stays constant (~200 lines) via progressive compression
+
+## Project Structure
+
+```
+.
+├── README.md                    # This file
+├── CLAUDE.md                    # Main workflow guide
+├── ACTIVE.md                    # Current sprint state (your Kanban board)
+├── PROJECT_PROGRESS.md          # Big picture tracking (stub template)
+├── VISION.md                    # Architecture & design principles (stub template)
+├── LICENSE                      # MIT License
+├── .pre-commit-config.yaml      # Hook configuration
+├── .claude/
+│   ├── agents/                  # Agent personas (6 reviewers + worker)
+│   ├── hooks/                   # Git and session hooks
+│   ├── workflow/                # State transition & hook management
+│   └── settings.json            # Claude Code hook config
+└── .git/
+    └── hooks/                   # Managed by pre-commit
+```
 
 ## Documentation
 
 - **[CLAUDE.md](CLAUDE.md)** - Complete workflow guide
-- **[TEMPLATE_GUIDE.md](TEMPLATE_GUIDE.md)** - How to customize this template
-- **[.claude/README.md](.claude/README.md)** - Hook system documentation
-- **[.claude/agents/README.md](.claude/agents/README.md)** - Agent persona reference
+- **[.claude/agents/](.claude/agents/)** - Agent persona definitions
 
-## Why This Works
-
-**Traditional Multi-Agent Problem:**
-- ❌ Agent A starts, doesn't know what Agent B did
-- ❌ Forgets critical decisions from previous sessions
-- ❌ Re-implements things differently
-- ❌ Breaks existing code
-
-**This Template's Solution:**
-- ✅ Hook forces context load (ACTIVE.md) every session
-- ✅ Handover checklist enforces documentation
-- ✅ State machine validates transitions
-- ✅ Next agent picks up exactly where you left off
-- ✅ Context stays constant (~200 lines) via progressive compression
-
-## Example Use Cases
+## Use Cases
 
 This template is suitable for:
 - Long-term software projects (3-12+ months)
@@ -132,45 +216,7 @@ This template is suitable for:
 - Teams wanting deterministic agent coordination
 - Projects where context preservation is critical
 
-## Project Structure
-
-```
-.
-├── CLAUDE.md                    # Main workflow guide
-├── ACTIVE.md                    # Current sprint state (template)
-├── README.md                    # This file
-├── TEMPLATE_GUIDE.md            # Customization instructions
-├── .claude/
-│   ├── agents/                  # Agent persona definitions
-│   │   ├── worker.md
-│   │   ├── staff-engineer.md
-│   │   ├── tdd-expert.md
-│   │   ├── qa-engineer.md
-│   │   ├── security-reviewer.md
-│   │   └── performance-reviewer.md
-│   ├── hooks/
-│   │   ├── git/                 # Git hooks (commit-msg, etc.)
-│   │   └── session-start.sh     # Session start hook
-│   ├── workflow/
-│   │   ├── transition           # State transition validator
-│   │   └── install-hooks.sh     # Hook installation script
-│   ├── state/
-│   │   ├── ACTIVE.md            # Symlink to root ACTIVE.md
-│   │   └── archive/             # Completed work archives
-│   ├── settings.json            # Hook configuration
-│   └── README.md                # Hook system docs
-└── .git/
-    └── hooks/                   # Git hooks (symlinked)
-```
-
 ## License
 
-This template is provided as-is for use in your own projects. Customize freely.
+MIT License - see [LICENSE](LICENSE) file
 
-## Credits
-
-Developed for the [agentic-trader](https://github.com/alessiocol/agentic-trader) project and extracted as a reusable template.
-
----
-
-**Ready to start?** See [TEMPLATE_GUIDE.md](TEMPLATE_GUIDE.md) for detailed setup instructions.

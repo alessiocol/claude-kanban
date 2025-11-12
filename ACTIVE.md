@@ -36,7 +36,7 @@ None
 
 **[TASK-001] Your First Task**
 - Estimate: TBD
-- State: UNCLAIMED
+- State: `UNCLAIMED`
 - Owner: None
 - Dependencies: None
 - Tasks:
@@ -83,8 +83,7 @@ None
 **Read when needed:**
 - `CLAUDE.md` - Workflow guide, role definitions, coordination patterns
 - `.claude/agents/*.md` - Agent persona definitions (Coordinator loads when spawning)
-- `.claude/README.md` - Hook system documentation
-- `.claude/state/archive/` - Completed work history
+- `PROJECT_PROGRESS.md` - Big picture tracking (phases, metrics, blockers)
 
 ---
 
@@ -116,10 +115,10 @@ When you finish work:
 - Report completion to Coordinator
 
 **If you are the COORDINATOR (talking directly to user):**
-- Move tasks between states (UNCLAIMED → IN_PROGRESS → IN_REVIEW → COMPLETED)
+- Move tasks between states (`UNCLAIMED` → `IN_PROGRESS` → `IN_REVIEW` → `COMPLETED`)
 - Spawn worker agents for implementation
 - Spawn review agents after implementation
-- Coordinate feedback loops (IN_REVIEW → ADDRESSING_FEEDBACK → IN_REVIEW)
+- Coordinate feedback loops (`IN_REVIEW` → `ADDRESSING_FEEDBACK` → `IN_REVIEW`)
 - Maintain project progress tracking after major milestones
 - User talks to YOU, not to agents
 
@@ -129,17 +128,17 @@ When you finish work:
 
 **Task State Machine:**
 ```
-UNCLAIMED: Task ready to start
+`UNCLAIMED`: Task ready to start
     ↓ Coordinator spawns worker
-IN_PROGRESS: Worker implementing
+`IN_PROGRESS`: Worker implementing
     ↓ Worker completes, Coordinator moves to review
-IN_REVIEW: Review agents provide feedback (parallel)
+`IN_REVIEW`: Review agents provide feedback (parallel)
     ↓ If all approve
-COMPLETED: Task done
+`COMPLETED`: Task done
     ↓ If changes needed
-ADDRESSING_FEEDBACK: Worker fixes issues
+`ADDRESSING_FEEDBACK`: Worker fixes issues
     ↓ Worker completes fixes
-(back to IN_REVIEW for re-approval)
+(back to `IN_REVIEW` for re-approval)
 ```
 
 **Only Coordinator changes states.** Agents report completion, Coordinator transitions.
@@ -151,4 +150,4 @@ ADDRESSING_FEEDBACK: Worker fixes issues
 
 ---
 
-*This file stays ~200 lines. Completed work moves to archive.*
+*This file stays ~200 lines. Completed work is tracked in `PROJECT_PROGRESS.md`.*
