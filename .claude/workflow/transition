@@ -92,8 +92,8 @@ fi
 # Verify task is actually in FROM_STATE
 # Extract the task block and check its current state
 TASK_BLOCK=$(sed -n "/\[$TASK_ID\]/,/^$/p" "$ACTIVE_FILE")
-if ! echo "$TASK_BLOCK" | grep -q "State: $FROM_STATE"; then
-    CURRENT_STATE=$(echo "$TASK_BLOCK" | grep -oP 'State: \K\w+' | head -1)
+if ! echo "$TASK_BLOCK" | grep -q "State: \`$FROM_STATE\`"; then
+    CURRENT_STATE=$(echo "$TASK_BLOCK" | grep -oP 'State: `\K\w+' | head -1)
     echo -e "${RED}❌ STATE MISMATCH${NC}"
     echo ""
     echo "Task $TASK_ID is currently in state: ${YELLOW}$CURRENT_STATE${NC}"
@@ -131,38 +131,44 @@ fi
 # Create a backup
 cp "$ACTIVE_FILE" "${ACTIVE_FILE}.bak"
 
-# Find the task and update its state
-# This is a simple approach - assumes "- State: <STATE>" format
-sed -i "/\[$TASK_ID\]/,/^$/s/- State: $FROM_STATE/- State: $TO_STATE/" "$ACTIVE_FILE"
+# Step 1: Update the state field in the task block
+sed -i "/\[$TASK_ID\]/,/^$/s/- State: \`$FROM_STATE\`/- State: \`$TO_STATE\`/" "$ACTIVE_FILE"
 
-# Also need to move the task block between sections
-# For simplicity, we'll let the Coordinator do this manually for now
-# The validation in pre-commit will catch if they don't
-
-echo -e "${GREEN}✅ State updated in ACTIVE.md${NC}"
-echo ""
-echo "Next steps:"
-echo "  1. Move the [$TASK_ID] task block to the appropriate section:"
-case "$TO_STATE" in
-    "IN_PROGRESS")
-        echo "     → Move to '🔨 IN PROGRESS' section"
-        ;;
-    "IN_REVIEW")
-        echo "     → Move to '🔍 IN REVIEW' section"
-        ;;
-    "ADDRESSING_FEEDBACK")
-        echo "     → Move to '🔧 ADDRESSING_FEEDBACK' section"
-        ;;
-    "COMPLETED")
-        echo "     → Move to '✅ RECENTLY COMPLETED' section"
-        ;;
-esac
-echo "  2. Commit the change:"
-echo "     git add $ACTIVE_FILE"
-echo "     git commit -m \"[workflow] $TASK_ID: $FROM_STATE → $TO_STATE\""
-echo ""
+# Step 2: Move task block to appropriate section using Python helper
+SCRIPT_DIR="$(dirname "$0")"
+if ! python3 "$SCRIPT_DIR/move_task.py" "$ACTIVE_FILE" "$TASK_ID" "$FROM_STATE" "$TO_STATE"; then
+    echo -e "${RED}❌ Failed to move task block${NC}"
+    echo "Restoring backup..."
+    mv "${ACTIVE_FILE}.bak" "$ACTIVE_FILE"
+    exit 1
+fi
 
 # Cleanup backup
 rm -f "${ACTIVE_FILE}.bak"
+
+echo -e "${GREEN}✅ State transition complete${NC}"
+echo ""
+echo "Task $TASK_ID successfully moved:"
+case "$TO_STATE" in
+    "IN_PROGRESS")
+        echo "  → Now in '🔨 IN PROGRESS' section"
+        ;;
+    "IN_REVIEW")
+        echo "  → Now in '🔍 IN REVIEW' section"
+        ;;
+    "ADDRESSING_FEEDBACK")
+        echo "  → Now in '🔧 ADDRESSING_FEEDBACK' section"
+        ;;
+    "COMPLETED")
+        echo "  → Now in '✅ RECENTLY COMPLETED' section"
+        ;;
+esac
+echo ""
+echo "Next steps:"
+echo "  1. Review the changes in $ACTIVE_FILE"
+echo "  2. Commit the transition:"
+echo "     git add $ACTIVE_FILE"
+echo "     git commit -m \"[workflow] $TASK_ID: $FROM_STATE → $TO_STATE\""
+echo ""
 
 exit 0
