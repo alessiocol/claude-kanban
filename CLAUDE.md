@@ -43,7 +43,7 @@ User ←→ Coordinator Claude ←→ [spawns] ←→ Worker Agent
 **Know what to read and when:**
 
 ### 🔄 Loaded Every Session (Automatic)
-- **`ACTIVE.md`** - Current sprint state, recent work, next tasks
+- **`.claude/state/ACTIVE.md`** - Current sprint state, recent work, next tasks
   - Session-start hook displays this automatically
   - ~200 lines, all signal
   - You MUST read this to start work

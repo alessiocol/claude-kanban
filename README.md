@@ -53,7 +53,7 @@ graph TD
 - **Workers** - Implement tasks, update `ACTIVE.md`, report completion to Coordinator
 
 **Core Files:**
-- `ACTIVE.md` - Current sprint state (~200 lines, loaded every session)
+- `.claude/state/ACTIVE.md` - Current sprint state (~200 lines, loaded every session)
 - `PROJECT_PROGRESS.md` - Big picture tracking (phases, metrics, progress)
 - `CLAUDE.md` - Complete workflow guide
 
@@ -188,12 +188,13 @@ graph TD
 .
 ├── README.md                    # This file
 ├── CLAUDE.md                    # Main workflow guide
-├── ACTIVE.md                    # Current sprint state (your Kanban board)
 ├── PROJECT_PROGRESS.md          # Big picture tracking (stub template)
 ├── VISION.md                    # Architecture & design principles (stub template)
 ├── LICENSE                      # MIT License
 ├── .pre-commit-config.yaml      # Hook configuration
 ├── .claude/
+│   ├── state/
+│   │   └── ACTIVE.md            # Current sprint state (your Kanban board)
 │   ├── agents/                  # Agent personas (6 reviewers + worker)
 │   ├── hooks/                   # Git and session hooks
 │   ├── workflow/                # State transition & hook management

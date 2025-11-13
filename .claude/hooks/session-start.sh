@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Session Start Hook for Multi-Agent Coordination
-# This hook displays PROJECT_STATE.md to ensure every agent starts with context
+# This hook displays .claude/state/ACTIVE.md to ensure every agent starts with context
 
 # Colors for output (if terminal supports it)
 RED='\033[0;31m'
@@ -28,11 +28,11 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Display ACTIVE.md (lean state - only current work)
-if [ -f "${CLAUDE_PROJECT_DIR}/ACTIVE.md" ]; then
-    cat "${CLAUDE_PROJECT_DIR}/ACTIVE.md"
+if [ -f "${CLAUDE_PROJECT_DIR}/.claude/state/ACTIVE.md" ]; then
+    cat "${CLAUDE_PROJECT_DIR}/.claude/state/ACTIVE.md"
 else
     echo -e "${RED}⚠️  WARNING: ACTIVE.md not found!${NC}"
-    echo "Expected location: ACTIVE.md (project root)"
+    echo "Expected location: .claude/state/ACTIVE.md"
     echo "This file tracks current sprint state and coordinates between agents."
 fi
 
